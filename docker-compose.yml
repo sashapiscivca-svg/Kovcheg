@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  kovcheg:
+    build: .
+    image: kovcheg-engine:latest
+    container_name: kovcheg_core
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./sources:/app/sources
+    environment:
+      - LOG_LEVEL=info
+volumes:
+  kovcheg_models:

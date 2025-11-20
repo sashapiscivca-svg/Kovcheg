@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ковчег AI — База Знань</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo="> </head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📂 Ковчег</h2>
+                <span class="status-badge">Офлайн</span>
+            </div>
+            <div class="modules-container">
+                <h3>Доступні модулі</h3>
+                <div id="module-list" class="module-list">
+                    <p class="loading-text">Завантаження модулів...</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="chat-interface">
+            <div id="chat-window" class="chat-window">
+                <div class="message system-message">
+                    <div class="avatar">🤖</div>
+                    <div class="content">
+                        Привіт! Оберіть модуль зліва, щоб почати роботу з базою знань.
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="question-input" placeholder="Введіть ваше запитання тут..." autocomplete="off">
+                    <button id="send-btn" onclick="sendQuery()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="citation-panel" class="citation-panel hidden">
+                <div class="citation-header">📚 Використані джерела</div>
+                <div id="citation-content" class="citation-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

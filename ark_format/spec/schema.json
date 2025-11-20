@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kovcheg.io/ark/v0.1/ark.schema.json",
+  "title": "Kovcheg Archive Format (.ark)",
+  "description": "Strict validation schema for the Kovcheg Archive Format v0.1",
+  "type": "object",
+  "required": ["header", "metadata", "content"],
+  "additionalProperties": false,
+  "properties": {
+    "header": { "$ref": "#/$defs/headerDef" },
+    "metadata": { "$ref": "#/$defs/metadataDef" },
+    "content": { "$ref": "#/$defs/contentDef" }
+  },
+  "$defs": {
+    "headerDef": {
+      "type": "object",
+      "description": "Immutable identification and cryptographic verification data",
+      "required": ["id", "version", "created_at", "checksum", "license"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Canonical UUIDv4",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic Versioning 2.0.0",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 UTC Timestamp"
+        },
+        "checksum": {
+          "type": "string",
+          "description": "SHA-256 Hex String",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "signature": {
+          "type": "object",
+          "required": ["pub_key", "sig", "algo"],
+          "additionalProperties": false,
+          "properties": {
+            "pub_key": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+            "sig": { "type": "string", "pattern": "^[a-fA-F0-9]{128}$" },
+            "algo": { "type": "string", "enum": ["ed25519"] }
+          }
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SPDX Identifier"
+        }
+      }
+    },
+    "metadataDef": {
+      "type": "object",
+      "description": "Contextual layer with conditional logic for AI safety",
+      "required": ["language", "risk_level", "data_provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "pattern": "^[a-zA-Z]{2,8}(-[a-zA-Z0-9]{2,8})*$",
+          "description": "IETF BCP 47 Language Tag"
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": ["safe", "warning", "restricted", "toxic"]
+        },
+        "warning_label": {
+          "type": "string",
+          "description": "Mandatory explanation if risk_level is toxic or warning"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 64 }
+        },
+        "data_provenance": {
+          "type": "object",
+          "required": ["author", "acquisition_method"],
+          "additionalProperties": false,
+          "properties": {
+            "source_uri": { "type": "string", "format": "uri" },
+            "author": { "type": "string", "minLength": 1 },
+            "acquisition_method": { "type": "string", "enum": ["manual", "scraper", "api", "generated"] },
+            "scraper_version": { "type": "string" }
+          }
+        }
+      },
+      "if": {
+        "properties": { "risk_level": { "const": "toxic" } }
+      },
+      "then": {
+        "required": ["warning_label"]
+      }
+    },
+    "contentDef": {
+      "type": "object",
+      "description": "The payload containing docs, vectors, and graph data",
+      "required": ["docs"],
+      "additionalProperties": false,
+      "properties": {
+        "docs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["mime_type", "body"],
+            "additionalProperties": false,
+            "properties": {
+              "mime_type": { "type": "string", "pattern": "^[a-z]+/[a-z0-9\\-\\.\\+]+$" },
+              "encoding": { "type": "string", "enum": ["utf-8", "base64"], "default": "utf-8" },
+              "body": { "type": "string" }
+            }
+          }
+        },
+        "embeddings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["model_id", "dimensions", "vector"],
+            "additionalProperties": false,
+            "properties": {
+              "model_id": { "type": "string" },
+              "dimensions": { "type": "integer", "minimum": 1 },
+              "vector": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            }
+          }
+        },
+        "knowledge_graph": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["subject", "predicate", "object"],
+            "additionalProperties": false,
+            "properties": {
+              "subject": { "type": "string", "minLength": 1 },
+              "predicate": { "type": "string", "minLength": 1 },
+              "object": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

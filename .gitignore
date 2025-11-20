@@ -1,0 +1,26 @@
+# Docker/OS/Python Artifacts
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+.env
+
+# Venv/Dependencies
+venv/
+.venv/
+.tox/
+
+# Data and Cache (CRITICAL: DO NOT COMMIT DATA)
+/data/
+/sources/
+/.kovcheg/
+
+# Build and Cache Artifacts
+/models_cache/
+/web_ui/public/
+/web_ui/backend/__init__.pyc
+/ark_engine/tests/sample_data/
+
+# Generated Archives
+*.ark
+*.ark.json

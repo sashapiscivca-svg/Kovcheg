@@ -1,0 +1,85 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: archives.kovcheg.io
+spec:
+  group: kovcheg.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: ["header", "metadata", "content"]
+              properties:
+                header:
+                  type: object
+                  required: ["id", "version", "checksum"]
+                  properties:
+                    id:
+                      type: string
+                      pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+                    version:
+                      type: string
+                      pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*).*$'
+                    created_at:
+                      type: string
+                      format: date-time
+                    checksum:
+                      type: string
+                      pattern: '^[a-fA-F0-9]{64}$'
+                    license:
+                      type: string
+                metadata:
+                  type: object
+                  required: ["language", "risk_level"]
+                  properties:
+                    language:
+                      type: string
+                      pattern: '^[a-zA-Z]{2,8}(-[a-zA-Z0-9]{2,8})*$'
+                    risk_level:
+                      type: string
+                      enum: ["safe", "warning", "restricted", "toxic"]
+                    warning_label:
+                      type: string
+                    data_provenance:
+                      type: object
+                      properties:
+                        source_uri:
+                          type: string
+                        author:
+                          type: string
+                content:
+                  type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        type: object
+                        required: ["body"]
+                        properties:
+                          mime_type:
+                            type: string
+                          body:
+                            type: string
+                    embeddings:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          vector:
+                            type: array
+                            items:
+                              type: number
+                              format: float
+  scope: Namespaced
+  names:
+    plural: archives
+    singular: archive
+    kind: ArkData
+    shortNames:
+    - ark
