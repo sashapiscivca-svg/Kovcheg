@@ -10,7 +10,11 @@ services:
     volumes:
       - ./data:/app/data
       - ./sources:/app/sources
+      - ./models_cache:/app/models_cache
+      - kovcheg_config:/root/.kovcheg 
     environment:
       - LOG_LEVEL=info
+
 volumes:
   kovcheg_models:
+  kovcheg_config: 

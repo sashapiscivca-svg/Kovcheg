@@ -31,5 +31,10 @@ httpx==0.26.0
 chardet==5.2.0
 python-multipart==0.0.9
 
+cryptography==42.0.0
+
+llama-cpp-python==0.2.90
+huggingface-hub==0.24.0
+
 
 # <-- !!! НАТИСНІТЬ ENTER ТУТ, ЩОБ БУВ ПОРОЖНІЙ РЯДОК !!!

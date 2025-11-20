@@ -24,8 +24,14 @@ class IndexEntry(BaseModel):
     title: str
     installed_at: datetime
     path: str  # Абсолютний шлях до файлу
+    
+    # Статус цілісності
     signature_ok: bool = False
     is_corrupted: bool = False
+    
+    # Security поля (Week 7)
+    publisher_id: str = "unknown"
+    trusted: bool = False
 
 class StoreIndex(BaseModel):
     """Структура файлу index.json."""
