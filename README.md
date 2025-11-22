@@ -26,10 +26,19 @@ git clone https://github.com/sashapiscivca-svg/kovcheg.git
 cd kovcheg
 
 # Створіть системні папки
-mkdir -p data/raw sources
+mkdir -p data/raw sources models_cache
 ```
 
-### 2. Додавання Знань
+### 2. Завантаження AI-моделі
+
+Система використовує модель **Qwen 2.5 7B Instruct** (~4.7 GB). Завантажте її один раз:
+
+```bash
+wget -O models_cache/qwen2.5-7b-instruct-q4_k_m.gguf \
+  https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf
+```
+
+### 3. Додавання Знань
 
 Покладіть документи у папку `sources` (PDF, DOCX, TXT, MD):
 
@@ -41,7 +50,7 @@ echo "Ласкаво просимо до Ковчега. Це офлайн си�
 cp ~/Documents/*.pdf ./sources/
 ```
 
-### 3. Збірка та Запуск
+### 4. Збірка та Запуск
 
 ```bash
 # Зберіть та запустіть сервіси
@@ -59,7 +68,7 @@ docker compose run --rm --service-ports kovcheg python -m ark_engine.cli.main we
 
 Веб-інтерфейс буде доступний за адресою: **http://localhost:8000**
 
-### 4. Використання
+### 5. Використання
 
 1. Відкрийте браузер на `http://localhost:8000`
 2. У лівій панелі вибіть модуль "Knowledge Base"
