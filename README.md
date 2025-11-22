@@ -174,7 +174,7 @@ docker compose run --rm kovcheg pytest ark_engine/tests/
 | Ark Store CLI | ✅ Працює |
 | Ark Engine (RAG) | ✅ Працює |
 | Web UI | ✅ Функціонально |
-| LLM Integration | 🔄 В розробці |
+| LLM Integration | ✅ Працює |
 
 ## 🤝 Внески
 
