@@ -1,115 +1,80 @@
 import json
+import logging
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import List
 from pathlib import Path
 
 from ark_engine.core.loader import ArkLoader
 from ark_engine.core.rag import ArkRAG
 from web_ui.backend.settings import settings
 
+logger = logging.getLogger("rag_router")
 router = APIRouter()
 
-# Кеш для RAG-рушіїв: {module_id: ArkRAG_Instance}
-RAG_ENGINES = {}
-
-class SourceChunk(BaseModel):
-    chunk: str
-    score: float
+RAG_CACHE = {}
 
 class AskRequest(BaseModel):
-    query: str = Field(..., description="The user's question.")
-    module_id: Optional[str] = Field(None, description="ID of the specific module to query.")
+    query: str
+    module_id: str
 
-class AskResponse(BaseModel):
-    answer: str = Field(..., description="The final answer from the RAG system (LLM Stub).")
-    sources: List[SourceChunk]
+def get_or_load_rag(module_id: str) -> ArkRAG:
+    if module_id in RAG_CACHE:
+        return RAG_CACHE[module_id]
 
-def find_module_path_by_id(target_id: str) -> Optional[Path]:
-    """
-    Сканує папку даних і шукає файл, чий header.id співпадає з target_id.
-    """
     search_path = Path(settings.ARK_MODULES_PATH)
-    if not search_path.exists():
-        return None
-        
-    # Перебираємо всі .ark.json файли
-    for file_path in search_path.glob("*.ark.json"):
-        try:
-            # Швидко читаємо тільки JSON, щоб перевірити ID
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                # Перевірка безпечна: якщо header немає, просто пропускаємо
-                if data.get("header", {}).get("id") == target_id:
-                    return file_path
-        except Exception as e:
-            print(f"Error scanning {file_path}: {e}")
-            continue
+    target_file = None
+    
+    # Оптимізований пошук файлу
+    for f_path in search_path.glob("*.ark.json"):
+        if module_id in f_path.name: # Хак для швидкості, краще хешмапу
+            target_file = f_path
+            break
             
-    return None
-
-def get_rag_engine(module_id: str) -> ArkRAG:
-    # 1. Перевіряємо кеш
-    if module_id in RAG_ENGINES:
-        return RAG_ENGINES[module_id]
-
-    # 2. Якщо немає в кеші, шукаємо файл на диску
-    file_path = find_module_path_by_id(module_id)
-    
-    if not file_path:
-        print(f"❌ Module ID {module_id} not found in {settings.ARK_MODULES_PATH}")
-        raise HTTPException(status_code=404, detail=f"Module ID {module_id} not found on disk.")
-
-    # 3. Завантажуємо та ініціалізуємо
-    print(f"📂 Loading module from: {file_path}")
-    try:
-        module = ArkLoader.load(file_path)
-        rag_engine = ArkRAG(module)
-        
-        # Зберігаємо в кеш
-        RAG_ENGINES[module_id] = rag_engine
-        return rag_engine
-    except Exception as e:
-        print(f"🔥 Failed to load module: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to load module: {e}")
-
-@router.post("/ask", response_model=AskResponse)
-def ask_question(request: AskRequest):
-    # Якщо ID не вказано, спробуємо знайти хоч щось (для тестів)
-    target_module_id = request.module_id
-    
-    if not target_module_id:
-        # Якщо кеш порожній, спробуємо завантажити перший ліпший файл
-        search_path = Path(settings.ARK_MODULES_PATH)
-        first_file = next(search_path.glob("*.ark.json"), None)
-        if first_file:
-            # Отримуємо його ID
+    # Якщо не знайшли швидко, шукаємо повільно (всередині JSON)
+    if not target_file:
+        for f_path in search_path.glob("*.ark.json"):
             try:
-                 with open(first_file, 'r') as f:
-                    data = json.load(f)
-                    target_module_id = data["header"]["id"]
-            except:
-                pass
-        
-        if not target_module_id:
-             raise HTTPException(status_code=400, detail="No modules found. Please build an ark module first.")
+                with open(f_path, 'r', encoding='utf-8') as f:
+                    # Читаємо тільки початок файлу для ID
+                    head = f.read(1024) 
+                    if module_id in head: 
+                        target_file = f_path
+                        break
+            except: continue
 
-    try:
-        rag_engine = get_rag_engine(target_module_id)
-        
-        # Пошук
-        search_results = rag_engine.search(request.query, top_k=3)
-        
-        # Генерація відповіді
-        llm_response = rag_engine.ask(request.query)
-        
-        return AskResponse(
-            answer=llm_response,
-            sources=[SourceChunk(chunk=text, score=score) for text, score in search_results]
-        )
+    if not target_file:
+        raise HTTPException(status_code=404, detail="Module not found")
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"RAG Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal RAG processing error: {e}")
+    logger.info(f"Loading {target_file}...")
+    module = ArkLoader.load(target_file)
+    rag = ArkRAG(module)
+    RAG_CACHE[module_id] = rag
+    return rag
+
+@router.post("/ask_stream")
+async def ask_question_stream(req: AskRequest):
+    """Новий ендпоінт для потокової передачі"""
+    rag_engine = get_or_load_rag(req.module_id)
+
+    # Генератор, який спочатку віддає метадані (джерела), а потім текст
+    def iter_response():
+        # 1. Спочатку шукаємо джерела
+        sources = rag_engine.search(req.query, top_k=3)
+        
+        # Відправляємо джерела як перший чанк (JSON рядок)
+        sources_data = json.dumps({
+            "type": "sources",
+            "data": [{"chunk": t, "score": s} for t, s in sources]
+        }, ensure_ascii=False)
+        yield sources_data + "\n"
+
+        # 2. Потім стрімимо токени
+        for token in rag_engine.ask_stream(req.query):
+            # Екрануємо спецсимволи для JSON, якщо треба, або шлемо raw
+            # Тут використовуємо простий формат: prefix "data: "
+            msg = json.dumps({"type": "token", "content": token}, ensure_ascii=False)
+            yield msg + "\n"
+
+    return StreamingResponse(iter_response(), media_type="application/x-ndjson")

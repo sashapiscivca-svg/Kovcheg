@@ -1,15 +1,14 @@
 from huggingface_hub import hf_hub_download
 import os
 
-# Спробуємо альтернативний, надійний репозиторій GGUF
-# bartowski - один з найактивніших мейнтенерів квантованих моделей
-REPO_ID = "bartowski/Qwen2.5-7B-Instruct-GGUF"
-# Перевірена назва файлу
-FILENAME = "Qwen2.5-7B-Instruct-Q4_K_M.gguf" 
+# Оптимальна модель для i3/8-16GB RAM
+# Qwen 2.5 3B Instruct (Q4_K_M квантування)
+REPO_ID = "bartowski/Qwen2.5-3B-Instruct-GGUF"
+FILENAME = "Qwen2.5-3B-Instruct-Q4_K_M.gguf"
 CACHE_DIR = "./models_cache"
 
 def download():
-    print(f"Downloading {FILENAME} from {REPO_ID} to {CACHE_DIR}...")
+    print(f"🚀 Downloading LIGHTWEIGHT model: {FILENAME}...")
     os.makedirs(CACHE_DIR, exist_ok=True)
     
     try:
@@ -21,11 +20,11 @@ def download():
         )
         print(f"✅ Model downloaded to: {path}")
         
-        # Перейменовуємо для зручності (lowercase), щоб код engine його знайшов
-        target_path = os.path.join(CACHE_DIR, "qwen2.5-7b-instruct-q4_k_m.gguf")
+        # Перейменовуємо для зручності
+        target_path = os.path.join(CACHE_DIR, "qwen2.5-3b-instruct.gguf")
         if path != target_path:
              os.rename(path, target_path)
-             print(f"🔄 Renamed to standard name: {target_path}")
+             print(f"🔄 Renamed to: {target_path}")
 
     except Exception as e:
         print(f"❌ Download failed: {e}")

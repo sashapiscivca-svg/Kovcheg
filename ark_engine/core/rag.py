@@ -1,67 +1,92 @@
 import numpy as np
-from typing import List, Tuple
+import re
+from typing import List, Tuple, Generator
 from sentence_transformers import SentenceTransformer
+# rank_bm25 видалено
 
 from ark_engine.core.models import ArkModule
-# НОВИЙ ІМПОРТ
-from ark_engine.core.llm import LLMEngine 
+from ark_engine.core.llm import LLMEngine
 
 class ArkRAG:
     def __init__(self, module: ArkModule):
         self.module = module
-        # Конвертуємо ембеддінги у numpy array
-        self.doc_embeddings = np.array(module.content.embeddings)
         self.docs = module.content.docs
+        self.doc_embeddings = np.array(module.content.embeddings)
         
-        # Модель для пошуку (маленька, швидка)
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        
-        # Ініціалізуємо LLM (вона завантажиться тільки при першому запиті)
+        # Легка модель
+        self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
         self.llm = LLMEngine()
 
+        # Попередній розрахунок слів для швидкого пошуку
+        # set() працює миттєво
+        self.doc_tokens = [set(re.findall(r'\w+', doc.lower())) for doc in self.docs]
+
+    def _simple_keyword_score(self, query: str) -> np.ndarray:
+        """
+        Надшвидкий алгоритм замість BM25.
+        Рахує % співпадіння слів.
+        """
+        query_tokens = set(re.findall(r'\w+', query.lower()))
+        if not query_tokens:
+            return np.zeros(len(self.docs))
+            
+        scores = []
+        for doc_set in self.doc_tokens:
+            if not doc_set:
+                scores.append(0.0)
+                continue
+            # Перетин множин: скільки слів запиту є в документі
+            common = len(query_tokens.intersection(doc_set))
+            scores.append(common)
+            
+        return np.array(scores)
+
     def search(self, query: str, top_k: int = 3) -> List[Tuple[str, float]]:
-        """Пошук релевантних шматків тексту (без змін)."""
-        if len(self.doc_embeddings) == 0:
-            return []
+        if not self.docs: return []
 
-        query_embedding = self.model.encode(query)
+        # 1. Векторний пошук (Сенс)
+        query_vec = self.embedder.encode(query)
+        vector_scores = np.dot(self.doc_embeddings, query_vec)
         
-        norm_docs = np.linalg.norm(self.doc_embeddings, axis=1)
-        norm_query = np.linalg.norm(query_embedding)
+        # Нормалізація векторів (0..1)
+        v_min, v_max = vector_scores.min(), vector_scores.max()
+        if v_max != v_min:
+            vector_scores = (vector_scores - v_min) / (v_max - v_min)
+
+        # 2. Ключовий пошук (Точність) - ТЕПЕР ЛЕГКИЙ
+        keyword_scores = self._simple_keyword_score(query)
         
-        norm_docs[norm_docs == 0] = 1e-10
-        if norm_query == 0:
-            norm_query = 1e-10
+        # Нормалізація ключових слів (0..1)
+        k_min, k_max = keyword_scores.min(), keyword_scores.max()
+        if k_max != k_min:
+            keyword_scores = (keyword_scores - k_min) / (k_max - k_min)
 
-        dot_products = np.dot(self.doc_embeddings, query_embedding)
-        scores = dot_products / (norm_docs * norm_query)
+        # 3. Злиття (Гібрид)
+        # 60% Вектор (розум) + 40% Слова (точність)
+        final_scores = (0.6 * vector_scores) + (0.4 * keyword_scores)
 
-        top_indices = np.argsort(scores)[-top_k:][::-1]
+        # Сортування
+        top_indices = np.argsort(final_scores)[-top_k:][::-1]
 
         results = []
         for idx in top_indices:
-            # Фільтруємо дуже слабкі збіги
-            if scores[idx] > 0.25:
-                results.append((self.docs[idx], float(scores[idx])))
-
+            if final_scores[idx] > 0.2:
+                results.append((self.docs[idx], float(final_scores[idx])))
+        
         return results
 
-    def ask(self, query: str) -> str:
-        """
-        Retrieves context and generates a REAL answer using Offline LLM.
-        """
-        # 1. Шукаємо контекст
-        results = self.search(query, top_k=5) # Беремо більше контексту (5 шматків)
+    def ask_stream(self, query: str) -> Generator[str, None, None]:
+        # Використовуємо top_k=3, бо ми полегшили пошук
+        results = self.search(query, top_k=3)
         
         if not results:
-            return "У цьому модулі немає інформації, що відповідає вашому запиту."
+            yield "Інформація відсутня в базі знань."
+            return
 
-        # 2. Склеюємо контекст
-        context_text = "\n---\n".join([text for text, score in results])
+        # Обрізаємо текст до 1000 символів на шматок, щоб не перевантажити RAM
+        context_text = "\n".join([
+            f"[Джерело {i+1}]: {txt[:1000]}..." 
+            for i, (txt, _) in enumerate(results)
+        ])
         
-        # 3. Генерація через LLM
-        try:
-            response = self.llm.generate_response(query, context_text)
-            return response
-        except Exception as e:
-            return f"Помилка генерації LLM: {str(e)}"
+        yield from self.llm.generate_stream(query, context_text)

@@ -2,69 +2,67 @@ import os
 import logging
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse
 from pathlib import Path
 
 from web_ui.backend.modules_router import router as modules_router
 from web_ui.backend.rag_router import router as rag_router
 from web_ui.backend.settings import settings
+from web_ui.backend.chat_router import router as chat_router
 
-# --- Application Setup ---
-
+# --- Setup ---
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("kovcheg_ui")
+logger = logging.getLogger("kovcheg_app")
 
 app = FastAPI(
-    title="Kovcheg Web UI Backend",
-    description="Offline RAG API for .ark modules.",
+    title="Kovcheg UI Backend",
     version="0.1.0",
-    docs_url=None, 
-    redoc_url=None
+    docs_url="/docs" # Swagger документація буде доступна
 )
 
-# --- Router Registration ---
+# --- CORS (Критично для веб-розробки) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Дозволити всі джерела (для локальної роботи безпечно)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Routers ---
 app.include_router(modules_router, prefix="/api/v1")
 app.include_router(rag_router, prefix="/api/v1")
+app.include_router(chat_router, prefix="/api/v1")
 
-# --- Static Files Configuration ---
+# --- Static Files Logic ---
+# Визначаємо шлях до frontend папки (всередині контейнера це /app/web_ui/frontend)
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 
-# Визначаємо АБСОЛЮТНИЙ шлях до папки frontend всередині контейнера.
-# Це /app/web_ui/frontend
-APP_ROOT_CONTAINER = Path("/app")
-FRONTEND_DIR_ABS = APP_ROOT_CONTAINER / "web_ui" / "frontend"
+if not FRONTEND_DIR.exists():
+    # Fallback для Docker шляхів, якщо запускаємо не з кореня
+    FRONTEND_DIR = Path("/app/web_ui/frontend")
 
-# --- Root Endpoint (HTML Serving) ---
-
-@app.get("/", response_class=HTMLResponse)
-async def serve_index():
-    """
-    Подає головний HTML-файл для UI.
-    """
-    index_path = FRONTEND_DIR_ABS / "index.html"
-    
-    # 1. Перевірка існування файлу
-    if not index_path.exists():
-        logger.error(f"❌ index.html NOT found at: {index_path}")
-        return f"""
-        <html>
-            <body style="font-family: sans-serif; padding: 2rem;">
-                <h1 style="color: red;">404 Error: Frontend Not Found</h1>
-                <p>Path checked: <b>{index_path}</b></p>
-                <p>Action: Rebuild Docker to ensure files were copied to this location.</p>
-            </body>
-        </html>
-        """, 404
-        
-    # 2. Якщо файл існує, подаємо його
-    return index_path.read_text()
-
-# --- Static Files Mounting ---
-# Монтуємо статику тільки якщо папка існує, щоб уникнути помилок Uvicorn
-if FRONTEND_DIR_ABS.exists():
-    logger.info(f"✅ Frontend directory found. Mounting static files from: {FRONTEND_DIR_ABS}")
-    app.mount("/static", StaticFiles(directory=FRONTEND_DIR_ABS), name="static")
+# Монтуємо статику (CSS, JS, Images)
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+    logger.info(f"✅ Static files mounted from {FRONTEND_DIR}")
 else:
-    logger.warning(f"❌ Cannot mount /static. Directory does not exist: {FRONTEND_DIR_ABS}")
+    logger.error(f"❌ Frontend directory not found at {FRONTEND_DIR}")
 
-# Примітка: Логіка перевірки index.html та монтажу статичних файлів
-# тепер використовує одну й ту саму змінну `FRONTEND_DIR_ABS`, що усуває конфлікти.
+# --- Root Endpoint ---
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui():
+    """Віддає головну сторінку SPA (Single Page Application)"""
+    index_path = FRONTEND_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return """
+    <html>
+        <body>
+            <h1>Kovcheg Backend Running</h1>
+            <p>UI not found. Check Docker mapping.</p>
+        </body>
+    </html>
+    """
