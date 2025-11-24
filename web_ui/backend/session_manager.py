@@ -89,10 +89,10 @@ class SessionRAG:
             return
 
         # 1. Гібридний пошук
-        results = self.search(query, top_k=4)
+        results = self.search(query, top_k=6)
         
         if not results:
-            yield "Інформації не знайдено."
+            yield "На жаль, я не знайшов достатньо релевантної інформації у ваших документах."
             return
 
         # 2. Контекст
