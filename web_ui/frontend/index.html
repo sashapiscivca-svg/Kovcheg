@@ -14,7 +14,7 @@
 
     <div id="splash-screen">
         <div class="splash-logo">КОВЧЕГ</div>
-        <div class="splash-tagline">ІНІЦІАЛІЗАЦІЯ ПАМ'ЯТІ...</div>
+        <div class="splash-tagline">ІНІЦІАЛІЗАЦІЯ ЯДРА...</div>
     </div>
 
     <div class="app-shell" id="app-shell">
@@ -22,23 +22,48 @@
         <aside class="sidebar">
             <div class="brand">
                 <div class="brand-icon">K</div>
-                <div class="brand-text">КОВЧЕГ</div>
+                <div class="brand-text">КОВЧЕГ <span style="font-size:0.6rem; opacity:0.5; font-weight:400; margin-left:5px;">v0.1</span></div>
             </div>
 
-            <button class="btn-primary full-width" onclick="App.createNewChat()" style="margin-bottom: 20px;">
-                + Новий чат
+            <button class="btn-primary full-width" onclick="location.reload()" style="margin-bottom: 20px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);">
+                + Новий Сеанс
             </button>
 
-            <div class="nav-section-label" style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:10px; font-weight:600;">ІСТОРІЯ</div>
+            <div class="nav-section-label" style="font-size:0.7rem; color:var(--text-tertiary); margin-bottom:10px; font-weight:700; letter-spacing: 0.05em;">DATA CORE</div>
             
-            <div class="nav-list" id="chat-list" style="flex:1; overflow-y:auto; margin-bottom:20px;">
-                <div class="loading-text">Завантаження...</div>
+            <div class="nav-list" id="modules-list" style="flex:1; overflow-y:auto; margin-bottom:20px; min-height: 100px;">
+                <div class="loading-text" style="font-size:0.8rem;">Scanning ark modules...</div>
+            </div>
+
+            <div class="telemetry-panel">
+                <div class="nav-section-label" style="font-size:0.65rem; color:var(--text-tertiary); margin-bottom:10px; font-weight:700;">SYSTEM TELEMETRY</div>
+                
+                <div class="tele-row">
+                    <span>STATUS</span>
+                    <span class="tele-val" style="color:var(--success-color)">ONLINE</span>
+                </div>
+                <div class="tele-row">
+                    <span>LLM ENGINE</span>
+                    <span class="tele-val">Qwen 2.5 3B</span>
+                </div>
+                <div class="tele-row">
+                    <span>RAM USAGE</span>
+                    <span class="tele-val">3.2 GB</span>
+                </div>
+                <div class="tele-row">
+                    <span>VECTOR DB</span>
+                    <span class="tele-val">MOUNTED</span>
+                </div>
+
+                <div class="tele-bar">
+                    <div class="tele-fill"></div>
+                </div>
             </div>
 
             <div class="sidebar-footer">
                 <div class="nav-list">
                     <button class="nav-item" onclick="App.switchView('packages')">
-                        <span class="icon">📦</span> База знань
+                        <span class="icon">📦</span> Менеджер пакетів
                     </button>
                     <button class="nav-item" onclick="App.switchView('settings')">
                         <span class="icon">⚙️</span> Налаштування
@@ -46,10 +71,10 @@
                 </div>
 
                 <div class="user-profile" onclick="App.toggleTheme()" style="margin-top: 15px;">
-                    <div class="avatar">U</div>
+                    <div class="avatar" style="background: #374151;">OP</div>
                     <div class="user-info">
-                        <span class="user-name">Operator</span>
-                        <span class="user-role">Admin</span>
+                        <span class="user-name" style="font-family: var(--font-mono);">OPERATOR_01</span>
+                        <span class="user-role">ADMIN ACCESS</span>
                     </div>
                 </div>
             </div>
@@ -74,9 +99,9 @@
                 
                 <div class="chat-header">
                     <div class="header-info">
-                        <h2 id="active-chat-title" style="margin:0; font-size:1.1rem;">Новий чат</h2>
+                        <h2 id="active-chat-title" style="margin:0; font-size:1.1rem; font-family: var(--font-mono);">TERMINAL</h2>
                         <div class="active-module-label" id="module-indicator" style="font-size:0.8rem; color:var(--text-secondary);">
-                            <span class="status-dot online"></span> Модуль не підключено
+                            <span class="status-dot online"></span> Awaiting input...
                         </div>
                     </div>
                 </div>
@@ -84,7 +109,7 @@
                 <div id="chat-history" class="chat-history" style="flex:1; overflow-y:auto; padding:20px;">
                     <div class="msg system">
                         <div class="msg-avatar">🤖</div>
-                        <div class="msg-bubble">Вітаю! Я готовий до роботи. Ви можете обрати модуль з бази знань або завантажити свій файл через 📎.</div>
+                        <div class="msg-bubble">Система готова. Оберіть модуль у блоці <b>DATA CORE</b> для початку роботи.</div>
                     </div>
                 </div>
 
@@ -104,7 +129,7 @@
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                         </button>
 
-                        <textarea id="chat-input" placeholder="Напишіть запитання..." rows="1"></textarea>
+                        <textarea id="chat-input" placeholder="Введіть запит до бази даних..." rows="1"></textarea>
                         
                         <button id="send-btn" onclick="App.sendMessage()" class="btn-send">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -133,6 +158,26 @@
             <span id="toast-msg">Готово</span>
         </div>
 
+    </div>
+
+    <div id="inspector" class="inspector-panel">
+        <div class="inspector-header">
+            <h3 style="margin:0;">Module Details</h3>
+            <button onclick="App.closeInspector()" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">✕</button>
+        </div>
+        <div class="prop-group">
+            <div class="prop-label">Title</div>
+            <div class="prop-value" id="ins-title">Unknown</div>
+        </div>
+        <div class="prop-group">
+            <div class="prop-label">UUID</div>
+            <div class="prop-value mono" id="ins-id">...</div>
+        </div>
+        <div class="prop-group">
+            <div class="prop-label">Version</div>
+            <div class="prop-value" id="ins-version">...</div>
+        </div>
+        <button class="btn-primary" onclick="App.activateCurrentPackage()">Активувати цей модуль</button>
     </div>
 
     <script src="/static/app.js"></script>
