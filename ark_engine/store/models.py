@@ -1,3 +1,5 @@
+# ark_engine/store/models.py (ОНОВЛЕНО)
+
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -13,9 +15,9 @@ class PackageMeta(BaseModel):
     
     # Статистика вмісту
     doc_count: int = 0
-    embedding_count: int = 0
+    embedding_count: int = 0 # Залишаємо для сумісності, але заповнюємо інакше
     total_size_bytes: int = 0
-    checksum: str  # SHA256 самого файлу .ark
+    checksum: str 
 
 class IndexEntry(BaseModel):
     """Запис в головному index.json."""
@@ -23,13 +25,13 @@ class IndexEntry(BaseModel):
     version: str
     title: str
     installed_at: datetime
-    path: str  # Абсолютний шлях до файлу
+    path: str
     
     # Статус цілісності
     signature_ok: bool = False
     is_corrupted: bool = False
     
-    # Security поля (Week 7)
+    # Security поля
     publisher_id: str = "unknown"
     trusted: bool = False
 

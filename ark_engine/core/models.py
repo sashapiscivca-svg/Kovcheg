@@ -1,63 +1,35 @@
+# ark_engine/core/models.py
+
 from typing import List, Optional, Dict, Any
-from uuid import UUID
-from datetime import datetime
-from enum import Enum
 from pydantic import BaseModel, Field
 
-class RiskLevel(str, Enum):
-    low = "low"
-    warning = "warning"
-    restricted = "restricted"
-    toxic = "toxic"
-
 class ArkHeader(BaseModel):
-    """Header: Immutable identification and cryptographic verification data."""
-    id: UUID
-    title: str
-    author: str
-    created_at: datetime
-    version: str
-    checksum: str
-    signature: Optional[str] = None
-    license: str
+    id: str = Field(..., description="Unique UUIDv4 for the archive.")
+    version: str = Field("0.1.0", description="Schema version (SemVer).")
+    title: str = Field(..., description="Human-readable title.")
+    author: str = Field("Unknown", description="Author of the knowledge base.") # <--- ПОВЕРНУЛИ ПОЛЕ AUTHOR
+    created_at: str = Field(..., description="ISO 8601 UTC timestamp.")
+    checksum: str = Field(..., description="SHA-256 hash of the canonical JSON representation of 'content'.")
+    license: str = Field("Unknown", description="SPDX license identifier.")
+    # Дозволяємо і Dict, і str, і None для зворотної сумісності, якщо старі файли мають ""
+    signature: Optional[Any] = Field(None, description="Cryptographic signature block.")
 
 class ArkMetadata(BaseModel):
-    """Metadata: Contextual layer for filtering and moderation."""
-    language: str = Field(..., description="IETF BCP 47 language tag (e.g., 'uk-UA')")
-    categories: List[str]
-    tags: List[str]
-    locale: str
-    intended_use: str
-    risk_level: RiskLevel = RiskLevel.low
-    warning_label: Optional[str] = None
+    language: str = Field("uk-UA", description="Primary language of content (IETF BCP 47 Tag).")
+    risk_level: str = Field("safe", description="Content safety marker.")
+    tags: List[str] = Field(default_factory=list, description="Keywords for quick search.")
+    data_provenance: Dict[str, Any] = Field(default_factory=dict, description="Lineage information.")
 
 class ArkContent(BaseModel):
-    """Content: The primary data payload."""
-    
-    docs: List[str] 
-    
-    embeddings: List[List[float]] 
-    
-    media: List[str] = Field(default_factory=list)
-    
-    search_index: List[Dict[str, Any]] = Field(default_factory=list) 
-    
-    references: Optional[List[str]] = None
-
-class ArkSignatureBlock(BaseModel):
-    """Signature Block: Data for cryptographic verification."""
-    public_key_id: Optional[str] = None
-    signature_algo: Optional[str] = None
-    signature_bin: Optional[str] = None
-
-class ArkUpdateManifest(BaseModel):
-    """Update Manifest: Placeholder for differential updates."""
-    patches: List[Any] = Field(default_factory=list)
+    docs: List[str] = Field(..., description="List of normalized textual chunks.")
+    vector_index_uri: Optional[str] = Field(None, description="URI path to the disk-based vector index.")
+    search_index: List[Dict[str, Any]] = Field(default_factory=list, description="Optional pre-computed full-text or graph index data.")
+    references: Optional[List[str]] = Field(None, description="Source links or identifiers for each chunk.")
+    media: List[str] = Field(default_factory=list, description="Paths or URIs to associated media files.")
 
 class ArkModule(BaseModel):
-    """The complete Kovcheg Archive Format (.ark) structure."""
     header: ArkHeader
     metadata: ArkMetadata
     content: ArkContent
-    signature_block: ArkSignatureBlock = Field(default_factory=ArkSignatureBlock)
-    update_manifest: ArkUpdateManifest = Field(default_factory=ArkUpdateManifest)
+    signature_block: Dict[str, Any] = Field(default_factory=dict)
+    update_manifest: Dict[str, Any] = Field(default_factory=dict)
