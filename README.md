@@ -4,7 +4,7 @@
 
 **A retrieval-augmented question-answering system that runs with no internet, on a mini PC or from a USB stick, built for emergencies.**
 
-[Українська](README.uk.md) · [Documentation](docs/en/README.md) · [Responsible use](RESPONSIBLE_USE.md) · [Security](SECURITY.md)
+**[▶ Live demo in your browser](https://huggingface.co/spaces/alexshynkarenk0/kovcheg-demo)** · [Українська](README.uk.md) · [Documentation](docs/en/README.md) · [Responsible use](RESPONSIBLE_USE.md) · [Security](SECURITY.md)
 
 `MIT` · `v1.0.0` · `Python ≥ 3.11` · `100 % offline` · `search works with numpy alone`
 

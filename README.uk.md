@@ -4,7 +4,7 @@
 
 **Система запитань і відповідей на основі пошуку (RAG), що працює без інтернету на міні-ПК або з USB-накопичувача й створена для надзвичайних ситуацій.**
 
-[English](README.md) · [Документація](docs/uk/README.md) · [Відповідальне використання](RESPONSIBLE_USE.uk.md) · [Безпека](docs/uk/SECURITY.md)
+**[▶ Живе демо в браузері](https://huggingface.co/spaces/alexshynkarenk0/kovcheg-demo)** · [English](README.md) · [Документація](docs/uk/README.md) · [Відповідальне використання](RESPONSIBLE_USE.uk.md) · [Безпека](docs/uk/SECURITY.md)
 
 `MIT` · `v1.0.0` · `Python ≥ 3.11` · `100 % офлайн` · `пошук працює лише з numpy`
 
