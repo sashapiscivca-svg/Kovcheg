@@ -1,5 +1,6 @@
 import shutil
 import sqlite3
+import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -211,6 +212,7 @@ def test_stitch_removes_chunk_overlap():
     assert stitch(["one", "two"]) == "one\ntwo"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot replace files of an open module; the build reports it")
 def test_index_cache_reopens_after_rebuild(tmp_path):
     mods = tmp_path / "modules"
     make_module(mods, "m", {"a.txt": ["old content about wells"]})

@@ -1,4 +1,5 @@
 import shutil
+import sys
 import threading
 
 import pytest
@@ -154,6 +155,7 @@ def test_legacy_and_temp_folders(tmp_path):
     assert ans.hits and any("'nope' not found" in w for w in ans.warnings) and any("'old' cannot be opened" in w for w in ans.warnings)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot replace files of an open module; the build reports it")
 def test_rebuilt_module_is_reloaded(tmp_path):
     k = _engine(tmp_path)
     assert k.search("springs", ["water"]).status == "no_evidence"

@@ -366,7 +366,11 @@ def _swap(work: Path, module_dir: Path) -> None:
     if old.exists():
         shutil.rmtree(old)
     if module_dir.exists():
-        os.replace(module_dir, old)
+        try:
+            os.replace(module_dir, old)
+        except PermissionError as e:   # Windows: files of an open module cannot be moved
+            raise BuildError(f"cannot replace module '{module_dir.name}': its files are in use. Close the Kovcheg web interface "
+                             "(or press its reload button) and build again; the previous version is unchanged") from e
     os.replace(work, module_dir)
     if old.exists():
         shutil.rmtree(old, ignore_errors=True)

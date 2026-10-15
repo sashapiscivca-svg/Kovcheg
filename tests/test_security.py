@@ -22,13 +22,15 @@ def signed(tmp_path):
 
 def test_keygen_files_and_overwrite(tmp_path):
     info = keygen(tmp_path / "k")
-    assert stat.S_IMODE(os.stat(info.private_path).st_mode) == 0o600
+    if os.name != "nt":   # POSIX permissions; on Windows the file inherits the folder ACL
+        assert stat.S_IMODE(os.stat(info.private_path).st_mode) == 0o600
     assert b"PRIVATE KEY" in info.private_path.read_bytes() and b"PUBLIC KEY" in info.public_path.read_bytes()
     assert len(info.key_id) == 16
     with pytest.raises(FileExistsError):
         keygen(tmp_path / "k")
     assert keygen(tmp_path / "k", force=True).key_id != info.key_id
-    assert stat.S_IMODE(os.stat(info.private_path).st_mode) == 0o600
+    if os.name != "nt":   # POSIX permissions; on Windows the file inherits the folder ACL
+        assert stat.S_IMODE(os.stat(info.private_path).st_mode) == 0o600
     from cryptography.hazmat.primitives.serialization import load_pem_public_key
     new = keygen(tmp_path / "k", force=True)
     assert list(trusted_keys(tmp_path / "k")) == [key_id_of(load_pem_public_key(new.public_path.read_bytes()))] == [new.key_id]
@@ -67,7 +69,7 @@ def test_cache_not_fooled_by_restored_mtime(signed):
     verify_module(path, s.keys_dir, deep=True)
     p = path / "dense.f16.npy"
     st = _flip_byte(p, 200)
-    os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 1))
+    os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000))   # 1 ms: above every filesystem's timestamp resolution
     assert verify_module(path, s.keys_dir, deep=True).status == "invalid"
 
 

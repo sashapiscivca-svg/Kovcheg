@@ -23,6 +23,8 @@ Every command accepts `--home DIR` (default: `$KOVCHEG_HOME`, else the current f
 
 Without `-m`, all modules whose integrity is not INVALID are searched.
 
+On Windows, a module that is open in a running web interface cannot be replaced: `kovcheg build` stops with a clear message and leaves the previous version intact. Close the interface (or press its reload button) and build again.
+
 **Exit codes:** 0 success; 1 error (including an INVALID module in `verify`); 2 usage error; 3 no evidence (nothing relevant found); 4 missing component (module, model, library or key). Scripts can rely on them.
 
 ## Output
