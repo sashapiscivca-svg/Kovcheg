@@ -1,0 +1,14 @@
+# Tier S: search only. Any computer, numpy + document readers. No ML models.
+# Build modules with:  kovcheg build <module> --no-embed
+
+[embedding]
+model = ""            # no embedding model: BM25 full-text search only
+
+[rerank]
+enabled = false
+
+[llm]
+model = ""            # no language model: answers are the matching passages
+
+[retrieval]
+top_k = 8

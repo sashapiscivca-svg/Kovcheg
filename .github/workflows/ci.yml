@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install (no ML models, no PyTorch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check src tests
+      - name: Tests
+        run: pytest -q
+
+  core-only:
+    # The promise "search works with numpy alone": install without any extra and run the whole BM25 path.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install core only
+        run: pip install .
+      - name: Build and query a keyword-only module
+        run: |
+          mkdir -p /tmp/k && cd /tmp/k
+          kovcheg init
+          mkdir -p sources/demo
+          printf '# Water\n\nBoil water for at least one minute before drinking.\n' > sources/demo/water.md
+          kovcheg build demo --no-embed
+          kovcheg verify demo
+          kovcheg search "boiling water" -m demo
+          kovcheg doctor

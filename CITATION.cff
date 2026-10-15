@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use Kovcheg, please cite it as below."
+title: "Kovcheg: offline retrieval-augmented question answering for emergencies and small computers"
+type: software
+authors:
+  - name: "The Kovcheg authors"
+version: 1.0.0
+date-released: 2026-10-15
+license: MIT
+repository-code: "https://github.com/sashapiscivca-svg/Kovcheg"
+keywords: [retrieval-augmented generation, offline, emergency, search, bm25, edge computing]

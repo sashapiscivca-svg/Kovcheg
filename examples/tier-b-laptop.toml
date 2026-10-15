@@ -1,0 +1,22 @@
+# Tier B: 16 GB RAM laptop or desktop.
+# BGE-M3 + BGE reranker v2-m3 + Phi-3.5-mini Q4_K_M (or Qwen2.5-7B-Instruct Q4_K_M).
+
+[embedding]
+model = "models/bge-m3"
+batch_size = 16
+
+[rerank]
+model = "models/bge-reranker-v2-m3"
+enabled = true
+top_n = 20
+
+[llm]
+model = "models/Phi-3.5-mini-instruct-Q4_K_M.gguf"
+# model = "models/qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf"   # split GGUF: point to the first part
+context_window = 8192
+max_tokens = 700
+temperature = 0.1
+
+[retrieval]
+top_k = 8
+candidates = 50

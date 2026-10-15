@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kovcheg"
+version = "1.0.0"
+description = "Offline retrieval-augmented question answering over your own documents, for emergencies and small computers"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE.md"]
+authors = [{ name = "The Kovcheg authors" }]
+keywords = ["rag", "offline", "search", "emergency", "llm", "bm25", "bge-m3", "llama.cpp", "edge"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: Indexing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# core: BM25 search works with these alone
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+docs = ["pdfplumber>=0.10", "pypdf>=4", "python-docx>=1.1"]
+zim = ["libzim>=3.2"]                                   # libzim is GPL-3.0-or-later; optional
+embed = ["FlagEmbedding>=1.2"]                            # BGE-M3 + reranker (pulls PyTorch)
+llm = ["llama-cpp-python>=0.2.90"]
+ui = ["streamlit>=1.31"]
+sign = ["cryptography>=42"]
+full = ["kovcheg[docs,embed,llm,ui,sign]"]
+dev = ["pytest>=8", "ruff>=0.5", "cryptography>=42", "pypdf>=4", "python-docx>=1.1"]
+
+[project.scripts]
+kovcheg = "kovcheg.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 140
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "UP", "I"]
+ignore = ["E731"]

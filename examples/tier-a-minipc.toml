@@ -1,0 +1,22 @@
+# Tier A: mini PC, 8 GB RAM, 4-core CPU, no GPU (e.g. Intel N100).
+# About 4 GB RAM in use: BGE-M3 (~2.3 GB) + Qwen2.5-1.5B-Instruct Q4_K_M (~1.1 GB file).
+
+[embedding]
+model = "models/bge-m3"
+batch_size = 8
+max_length = 1024
+
+[rerank]
+enabled = false       # the reranker adds ~2.3 GB RAM and several seconds per question on this class of CPU
+
+[llm]
+model = "models/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+context_window = 4096
+max_tokens = 500
+temperature = 0.1
+threads = 4
+
+[retrieval]
+top_k = 6
+candidates = 40
+context_neighbors = 1
