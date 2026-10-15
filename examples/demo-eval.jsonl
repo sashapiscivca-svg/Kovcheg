@@ -1,0 +1,5 @@
+{"question": "how long should I boil water", "expected": "safe-drinking-water.md"}
+{"question": "how much bleach per litre of water", "expected": "safe-drinking-water.md"}
+{"question": "how long does a full freezer keep food cold without power", "expected": "power-outage-food.md"}
+{"question": "can I refreeze food after a power outage", "expected": "power-outage-food.md"}
+{"question": "what should an emergency supply kit contain", "expected": "emergency-kit.md"}

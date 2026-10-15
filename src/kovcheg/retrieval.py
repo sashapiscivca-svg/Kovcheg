@@ -31,7 +31,8 @@ import numpy as np
 from .types import Chunk, Hit
 
 RETRIEVERS = ("dense", "sparse", "bm25")
-_TOKEN = re.compile(r"\w+", re.UNICODE)
+# a word may contain apostrophes (Ukrainian кип'ятити, м'ясо; English don't): one token, not two
+_TOKEN = re.compile(r"\w+(?:['’ʼ]\w+)*", re.UNICODE)
 _UNIT = re.compile(r"^[^\W\d_]{1,6}$", re.UNICODE)    # short alphabetic token after a number: mg, ml, kg, мг, мл
 BLOCK_BYTES = 64 << 20                                # float32 scratch per dense block (~64 MB)
 
@@ -71,10 +72,20 @@ def fts_query(question: str, max_terms: int = 32) -> str:
 
 
 def stem(word: str) -> str:
-    """Crude language-agnostic stem: drop up to 3 trailing letters of long words (inflectional endings), keep >= 4."""
-    if not word.isalpha() or len(word) < 5:
+    """Crude language-agnostic stem for inflected languages: words of 7+ letters keep their first 5 letters, words of 5–6
+    letters drop the last 2 (keeping at least 4); shorter words are unchanged. A fixed-length prefix makes different forms
+    meet (кип'ятити / кип'ятіть / кип'ятіння -> кип'ят; кровотеча / кровотечу -> крово; disinfecting / disinfection)."""
+    n = sum(ch.isalpha() for ch in word)
+    if n < 5 or not all(ch.isalpha() or ch in "'’ʼ" for ch in word):
         return word
-    return word[: max(4, len(word) - (3 if len(word) >= 7 else 2))]
+    keep = 5 if n >= 7 else max(4, n - 2)
+    out, letters = [], 0
+    for ch in word:
+        if letters == keep:
+            break
+        out.append(ch)
+        letters += ch.isalpha()
+    return "".join(out)
 
 
 # ---- lexical coverage ---------------------------------------------------------------------------------------------
@@ -110,6 +121,10 @@ def coverage(terms: set[str], chunk: Chunk) -> float:
     words = {_fold(w) for w in _TOKEN.findall(f"{chunk.text} {chunk.section or ''} {chunk.doc_title}")}
     stems = {stem(w) for w in words}
     found = sum(1.0 if t in words else 0.8 if stem(t) in stems else 0.0 for t in terms)   # inflected match counts slightly less
+    # a question word in the section heading says what the passage is about (heading "Boiling" for "how long to boil")
+    section = chunk.section if chunk.section and _fold(chunk.section) != _fold(chunk.doc_title) else ""   # an H1 equal to the title says nothing
+    heading = {stem(_fold(w)) for w in _TOKEN.findall(section)}
+    found += 0.3 * sum(1 for t in terms if stem(t) in heading)
     return round(found / len(terms), 3)
 
 
@@ -120,6 +135,41 @@ def matches_any_term(terms: set[str], chunk: Chunk, prefix: int = 5) -> bool:
         return True
     words = {_fold(w)[:prefix] for w in _TOKEN.findall(f"{chunk.text} {chunk.section or ''} {chunk.doc_title}")}
     return any(t[:prefix] in words for t in terms)
+
+
+_SENTENCE = re.compile(r"(?<=[.!?…])\s+")
+
+
+def focused_snippet(text: str, question: str, max_chars: int = 320) -> str:
+    """The part of a passage that answers the question: the sentence with the most question words (inflection-tolerant),
+    extended with its neighbours up to `max_chars`. Search-only mode shows passages, so the key sentence must be visible."""
+    t = " ".join(text.split())
+    if len(t) <= max_chars:
+        return t
+    sents = [s for s in _SENTENCE.split(t) if s]
+    terms = {stem(x) for x in query_terms(question)}
+
+    def score(s: str) -> int:
+        return len(terms & {stem(_fold(w)) for w in _TOKEN.findall(s)})
+
+    best = max(range(len(sents)), key=lambda i: (score(sents[i]), -i)) if terms else 0
+    lo = hi = best
+    out = sents[best]
+    while True:
+        grown = False
+        if hi + 1 < len(sents) and len(out) + 1 + len(sents[hi + 1]) <= max_chars:
+            hi += 1
+            out = f"{out} {sents[hi]}"
+            grown = True
+        if lo > 0 and len(out) + 1 + len(sents[lo - 1]) <= max_chars:
+            lo -= 1
+            out = f"{sents[lo]} {out}"
+            grown = True
+        if not grown:
+            break
+    if len(out) > max_chars:
+        out = out[:max_chars].rsplit(" ", 1)[0] + " …"
+    return ("… " if lo > 0 else "") + out + (" …" if hi < len(sents) - 1 and not out.endswith("…") else "")
 
 
 # ---- text stitching -----------------------------------------------------------------------------------------------

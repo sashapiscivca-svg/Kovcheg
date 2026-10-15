@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kovcheg"
-version = "1.0.0"
+version = "1.0.1"
 description = "Offline retrieval-augmented question answering over your own documents, for emergencies and small computers"
 readme = "README.md"
 requires-python = ">=3.11"

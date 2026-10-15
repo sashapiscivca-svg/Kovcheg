@@ -275,6 +275,23 @@ def test_with_builder_end_to_end(tmp_path):
 
 def test_stem_and_prefix_terms_handle_inflection():
     from kovcheg.retrieval import fts_query, stem
-    assert stem("кровотечу") == stem("кровотеча") == "кровот" and stem("рану") == "рану" and stem("J18") == "J18"
+    assert stem("кровотечу") == stem("кровотеча") == "крово" and stem("рану") == "рану" and stem("J18") == "J18"
     q = fts_query("як зупинити кровотечу")
-    assert '"кровот"*' in q and '"зупин"*' in q and '"як"*' not in q
+    assert '"крово"*' in q and '"зупин"*' in q and '"як"*' not in q
+
+
+def test_focused_snippet_shows_the_answering_sentence():
+    from kovcheg.retrieval import focused_snippet
+    text = ("Boiling is the surest method to kill germs. If the water is cloudy, let it settle and filter it first. "
+            "Bring the water to a rolling boil for at least one minute. At elevations above 2,000 metres, boil for three minutes. "
+            "Let the water cool naturally and store it in clean containers. " + "Unrelated filler sentence about storage. " * 10)
+    s = focused_snippet(text, "how long should I boil water", max_chars=200)
+    assert "at least one minute" in s and len(s) <= 210
+    assert focused_snippet("short text", "anything") == "short text"
+
+
+def test_apostrophe_words_are_single_tokens_and_get_prefix_terms():
+    from kovcheg.retrieval import fts_query, query_terms, stem
+    assert "кип'ятити" in query_terms("скільки кип'ятити воду")
+    assert stem("кип'ятити") == stem("кип'ятіть") == stem("кип'ятіння") == "кип'ят"
+    assert '"кип\'ят"*' in fts_query("скільки кип'ятити воду")

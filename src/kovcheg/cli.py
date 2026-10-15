@@ -22,6 +22,26 @@ from . import __version__
 OK, ERROR, USAGE, NO_EVIDENCE, MISSING = 0, 1, 2, 3, 4
 DISCLAIMER = "Kovcheg can be wrong. In life-threatening situations follow official protocols and call emergency services."
 
+# What a person reads next to an answer follows the interface language ([ui] language); diagnostics stay in English.
+MESSAGES = {
+    "en": {"disclaimer": DISCLAIMER, "sources": "Sources:", "closest": "Closest passages (low relevance, not an answer):",
+           "no_evidence": "The selected modules contain nothing relevant to this question; Kovcheg will not guess an answer.",
+           "no_passages": "No relevant passages found in the selected modules.",
+           "search_only": "Search-only mode (no language model configured): the most relevant passages are listed below.",
+           "llm_unavailable": "The language model is unavailable; the most relevant passages are listed below."},
+    "uk": {"disclaimer": "Ковчег може помилятися. У ситуаціях, що загрожують життю, дійте за офіційними протоколами й викликайте "
+                         "екстрені служби.",
+           "sources": "Джерела:", "closest": "Найближчі фрагменти (низька релевантність, це не відповідь):",
+           "no_evidence": "У вибраних модулях немає нічого релевантного для цього питання; Ковчег не вгадуватиме відповідь.",
+           "no_passages": "У вибраних модулях не знайдено релевантних фрагментів.",
+           "search_only": "Режим пошуку (мовну модель не налаштовано): нижче — найрелевантніші фрагменти.",
+           "llm_unavailable": "Мовна модель недоступна; нижче — найрелевантніші фрагменти."},
+}
+
+
+def msg(settings, key: str) -> str:
+    return MESSAGES.get(getattr(settings.ui, "language", "en"), MESSAGES["en"])[key]
+
 CONFIG_TEMPLATE = """\
 # Kovcheg settings. Every key is optional; the values shown are the defaults.
 # Paths are relative to this folder (the Kovcheg home).
@@ -128,16 +148,17 @@ def _module_args(args) -> list[str] | None:
     return list(args.module) if args.module else None
 
 
-def _print_sources(ans, *, file=None) -> None:
+def _print_sources(ans, settings, *, file=None) -> None:
     from .rerank import sigmoid
+    from .retrieval import focused_snippet
     file = file or sys.stdout
     if not ans.hits:
         return
-    print("\nClosest passages (low relevance, not an answer):" if ans.status == "no_evidence" else "\nSources:", file=file)
+    print("\n" + msg(settings, "closest" if ans.status == "no_evidence" else "sources"), file=file)
     for i, h in enumerate(ans.hits, 1):
         rel = f"  relevance {sigmoid(h.rerank):.0%}" if h.rerank is not None else ""
         print(f"[{i}] {h.chunk.citation}  ({h.chunk.module}: {h.chunk.doc_path}){rel}", file=file)
-        print(f"    {_snippet(h.chunk.text)}", file=file)
+        print(f"    {focused_snippet(h.chunk.text, ans.question)}", file=file)
 
 
 def _print_warnings(ans) -> None:
@@ -263,8 +284,8 @@ def cmd_search(args) -> int:
     else:
         _print_warnings(ans)
         if ans.status == "no_evidence":
-            print("No relevant passages found in the selected modules.")
-        _print_sources(ans)
+            print(msg(k.settings, "no_passages"))
+        _print_sources(ans, k.settings)
     return _status_code(ans)
 
 
@@ -287,15 +308,15 @@ def cmd_ask(args) -> int:
     if streamed[0]:
         print()
     if ans.status == "no_evidence":
-        print("The selected modules contain nothing relevant to this question; Kovcheg will not guess an answer.")
+        print(msg(k.settings, "no_evidence"))
     elif ans.status == "search_only":
-        print("Search-only mode (no language model configured): the most relevant passages are listed below.")
+        print(msg(k.settings, "search_only"))
     elif ans.status == "llm_unavailable":
-        print("The language model is unavailable; the most relevant passages are listed below.")
-    _print_sources(ans)
+        print(msg(k.settings, "llm_unavailable"))
+    _print_sources(ans, k.settings)
     _print_warnings(ans)
     if ans.status in ("ok", "search_only"):
-        print(f"\n{DISCLAIMER}")
+        print("\n" + msg(k.settings, "disclaimer"))
     return _status_code(ans)
 
 
@@ -303,6 +324,7 @@ def build_ui_command(settings, host: str | None = None, port: int | None = None)
     app = Path(__file__).resolve().parent / "ui" / "app.py"
     return [sys.executable, "-m", "streamlit", "run", str(app),
             "--server.headless", "true", "--server.fileWatcherType", "none", "--browser.gatherUsageStats", "false",
+            "--client.toolbarMode", "minimal",   # no "Deploy" button or developer menu in an offline tool
             "--server.address", host or settings.ui.host, "--server.port", str(port or settings.ui.port),
             "--", "--home", str(settings.home)]
 
@@ -634,8 +656,8 @@ def cmd_eval(args) -> int:
     for r in res["items"]:
         mark = "MISS" if r["rank"] is None else f"@{r['rank']}"
         print(f"{mark:>5}  {r['question']}")
-    print(f"\n{res['n']} questions: hit@1 {res['hit@1']:.3f}  hit@3 {res['hit@3']:.3f}  hit@{top_k} {res[f'hit@{top_k}']:.3f}  "
-          f"MRR {res['mrr']:.3f}")
+    ks = sorted({1, 3, top_k})
+    print(f"\n{res['n']} questions: " + "  ".join(f"hit@{k} {res[f'hit@{k}']:.3f}" for k in ks) + f"  MRR {res['mrr']:.3f}")
     return OK
 
 

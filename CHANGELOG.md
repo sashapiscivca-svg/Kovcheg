@@ -2,6 +2,18 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] — 2026-10-15
+
+### Improved
+- Keyword search for Ukrainian: words with apostrophes (кип'ятити, м'ясо) are single tokens, and inflected forms meet through a fixed-length prefix (кип'ятити / кип'ятіть / кип'ятіння).
+- Ranking of keyword matches: a question word in a passage's section heading counts as a strong topic signal.
+- Search-only answers show the sentence that answers the question (query-focused snippets) instead of the first 240 characters.
+- The command line shows answers, sources and the safety notice in the interface language (Ukrainian by default, `[ui] language = "en"` for English).
+- The web interface hides the Streamlit "Deploy" button and developer menu.
+
+### Added
+- A demo library in English and Ukrainian (`examples/demo-library`, `examples/demo-library-uk`) with an evaluation file, and README media: a terminal recording (`scripts/make_cli_gif.py`) and screenshots of the web interface.
+
 ## [1.0.0] — 2026-10-15
 
 First public release. A rewrite of the `ark-system` prototype as the installable package `kovcheg`.

@@ -12,6 +12,10 @@
 
 ---
 
+<p align="center"><img src="docs/assets/kovcheg-cli.gif" alt="Terminal: kovcheg answers 'how long should I boil water' with the passage and its source, and refuses to guess for a question the library cannot answer" width="820"></p>
+
+<p align="center"><em>Real output on the <a href="examples/DEMO.md">demo library</a>, keyword search only, no AI model installed: the passage that answers the question with its source, and an honest refusal when the library has nothing relevant. Recorded with <code>scripts/make_cli_gif.py</code>.</em></p>
+
 When the network is down — after a disaster, in the field, on a ship, in a shelter, in a basement during an air raid — the knowledge you need is often already on a disk: first-aid manuals, field medicine protocols, equipment documentation, water and power guides, an offline Wikipedia. **Kovcheg** ("ark") turns such a library into something you can ask questions in plain language. It finds the relevant passages and shows them with exact references (document, page, section). If a local language model is available, it also writes a short answer that cites those passages as `[1]`, `[2]`.
 
 Everything runs locally. Nothing is sent anywhere. No account, no telemetry, no cloud.
@@ -69,6 +73,7 @@ python3 -m venv .venv && . .venv/bin/activate          # Windows: .venv\Scripts\
 pip install -e ".[docs,ui]"                              # search-only: readers + web interface, no ML models
 
 kovcheg init                                             # creates modules/, sources/, models/, keys/ and kovcheg.toml
+kovcheg build demo --source examples/demo-library --no-embed && kovcheg ask "how long should I boil water" -m demo   # try it
 mkdir -p sources/first-aid && cp ~/Downloads/*.pdf sources/first-aid/
 kovcheg build first-aid --no-embed                       # BM25-only module, builds in seconds
 kovcheg ask "how to stop severe bleeding" -m first-aid   # prints matching passages with page numbers
@@ -125,6 +130,8 @@ kovcheg ask "how to purify water without chemicals" -m water -m wikipedia --top-
 kovcheg search "J18.9" -m medicine                    # sources only, no LLM
 kovcheg ask "..." --json                               # machine-readable output
 ```
+
+![The Kovcheg web interface: a question, the search-mode notice and numbered sources with document and section](docs/assets/kovcheg-ui.png)
 
 The web interface (`kovcheg ui`) does the same with a chat view, a toggle for search-only mode, and integrity badges for every module. By default it listens only on this computer. To serve phones or laptops on the local network (for example, a shelter Wi-Fi), set `host = "0.0.0.0"` in `kovcheg.toml`.
 

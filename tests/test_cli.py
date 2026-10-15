@@ -7,7 +7,7 @@ from helpers import make_home
 from kovcheg import cli
 from kovcheg.config import Settings
 
-NO_MODELS = ["--set", "embedding.model=", "--set", "rerank.enabled=false"]
+NO_MODELS = ["--set", "embedding.model=", "--set", "rerank.enabled=false", "--set", "ui.language=en"]
 
 
 @pytest.fixture
@@ -173,3 +173,9 @@ def test_build_keygen_sign_via_cli(tmp_path, capsys):
     assert run(capsys, "sign", "kb", "--home", tmp_path)[0] == 0
     rc, out, _ = run(capsys, "verify", "kb", "--home", tmp_path)
     assert rc == 0 and "VALID" in out
+
+
+def test_answer_text_follows_interface_language(home, capsys):
+    """What a person reads next to the sources is Ukrainian when the interface is (the default), English on request."""
+    rc, out, _ = run(capsys, "ask", "J18.9", "code", "--home", home, "--set", "embedding.model=", "--set", "rerank.enabled=false")
+    assert rc == 0 and "Джерела:" in out and "Ковчег може помилятися" in out
